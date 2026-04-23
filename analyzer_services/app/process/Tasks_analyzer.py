@@ -33,6 +33,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
     await asyncio.sleep(2)
     config = {"configurable": {"thread_id": thread_id}}
     inputs = {"messages": [HumanMessage(content=query)]}
+    print(f"🚀 run_oracle_analysis iniciado con thread_id: {thread_id}")
 
     try:
         step_agent = 1
@@ -63,6 +64,39 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                             })
 
                 state = await oracle_app.aget_state(config)
+
+                # --- Pausa si supervisor preguntó y aún no hay módulo ---
+                mensajes = state.values.get("messages", [])
+                pregunta = None
+                for msg in reversed(mensajes):
+                    # --- Buscar pregunta del supervisor
+                    if getattr(msg, "agent", None) == "supervisor" or getattr(msg, "role", None) == "assistant":
+                        pregunta = msg.content
+                        break
+                    # fallback: si hay un GraphInterrupt con tipo 'interrupt' en state
+                if pregunta is None:
+                    # fallback conservador: no tomar el último human message
+                    logger.warning("No se encontró mensaje del supervisor en state.values['messages']")
+                    pregunta = "Por favor selecciona el módulo ERP que deseas analizar."
+
+                logger.info(f"Pregunta inicial del supervisor: {pregunta}")
+                await manager.send_update(thread_id, {
+                    "type": "interrupt",
+                    "agent": "supervisor",
+                    "content": pregunta
+                })
+                # Esperar respuesta en pending_responses...
+                while thread_id not in pending_responses:
+                    await asyncio.sleep(0.5)
+                respuesta = pending_responses.pop(thread_id)
+                print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
+
+                print(f"🔄 Actualizando estado con erp_module: {respuesta}")
+                await oracle_app.update_state(config, {"erp_module": respuesta})
+                inputs = {"messages": [HumanMessage(content=respuesta)]}
+                new_state = await oracle_app.aget_state(config)
+                print(f"📊 Estado después de update_state: {new_state.values.get('erp_module', 'NO ENCONTRADO')}")
+
                 if not state.next:
                     filename = f"reporte_{thread_id}.pdf"
                     await manager.send_update(thread_id, {
@@ -75,37 +109,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                     await manager.close_connection(thread_id)
                     break
 
-                # --- Pausa si supervisor preguntó y aún no hay módulo ---
-                if state.next and "erp_module" not in state.values:
-                    pregunta = state.values.get("messages", [])[-1].content
-                    logger.info(f"🤖 Pregunta inicial del supervisor: {pregunta}")
-                    await manager.send_update(thread_id, {
-                        "type": "interrupt",
-                        "agent": "supervisor",
-                        "content": pregunta
-                    })
-                    while thread_id not in pending_responses:
-                        await asyncio.sleep(0.5)
-                    respuesta = pending_responses.pop(thread_id)
-                    await oracle_app.update_state(config, {"erp_module": respuesta})
-                    inputs = {"messages": [HumanMessage(content=respuesta)]}
-                    continue
-                # --- FIN BLOQUE NUEVO ---
-
-                if state.next == "interrupt":
-                    pregunta = state.values.get("messages", [])[-1].content
-                    logger.info(f"🤖 Interrupción: {pregunta}")
-                    await manager.send_update(thread_id, {
-                        "type": "interrupt",
-                        "agent": "system",
-                        "content": pregunta
-                    })
-                    while thread_id not in pending_responses:
-                        await asyncio.sleep(0.5)
-                    respuesta = pending_responses.pop(thread_id)
-                    await oracle_app.update_state(config, {"erp_module": respuesta})
-                    inputs = {"messages": [HumanMessage(content=respuesta)]}
-                    continue
+                continue
 
             except GraphInterrupt as gi:
                 pregunta = gi.args[0].value
@@ -118,6 +122,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                 while thread_id not in pending_responses:
                     await asyncio.sleep(0.5)
                 respuesta = pending_responses.pop(thread_id)
+                print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
                 await oracle_app.update_state(config, {"erp_module": respuesta})
                 new_state = await oracle_app.aget_state(config)
                 logger.info(f"📊 Estado actualizado: {new_state.values}")

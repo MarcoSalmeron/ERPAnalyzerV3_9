@@ -54,6 +54,10 @@ export const useOracleWorkflow = () => {
 
     wsRef.current.onclose = () => {
       console.log('WebSocket disconnected');
+      // intentar reconectar si threadIdRef.current existe
+      setTimeout(() => {
+        if (threadIdRef.current) connectWebSocket(threadIdRef.current);
+      }, 1000);
     };
   }, []);
 
