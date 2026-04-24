@@ -13,6 +13,7 @@ router = APIRouter(prefix="/impact", tags=["Impact"])
 
 @router.post("/resume/{thread_id}")
 async def resume_flow(thread_id: str, data: ERPState):
+    print(f"📥 Endpoint /resume/{thread_id} llamado con: {data}")
     pending_responses[thread_id] = data.erp_module
     print(f"💾 pending_responses[{thread_id}] = {data.erp_module}")
     print(f"📋 Estado actual de pending_responses: {list(pending_responses.keys())}")

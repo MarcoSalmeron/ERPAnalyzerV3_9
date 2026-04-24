@@ -24,7 +24,7 @@ const handleSubmit = (e) => {
 
   const lastMsg = messages[messages.length - 1];
   // Interrupciones
-  if (lastMsg && lastMsg.type === 'interrupt') {
+    if (lastMsg && lastMsg.type === 'interrupt') {
     resumeAnalysis(query);
   } else {
     onStartAnalysis(query);

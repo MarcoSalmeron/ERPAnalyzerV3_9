@@ -85,7 +85,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                     respuesta = pending_responses.pop(thread_id)
                     print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
 
-                    await oracle_app.update_state(config, {"erp_module": respuesta})
+                    await oracle_app.aupdate_state(config, {"erp_module": respuesta})
                     inputs = {"messages": [HumanMessage(content=respuesta)]}
                     module_selected = True
 
@@ -122,7 +122,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                     await asyncio.sleep(0.5)
                 respuesta = pending_responses.pop(thread_id)
                 print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
-                await oracle_app.update_state(config, {"erp_module": respuesta})
+                await oracle_app.aupdate_state(config, {"erp_module": respuesta})
                 new_state = await oracle_app.aget_state(config)
                 logger.info(f"📊 Estado actualizado: {new_state.values}")
                 inputs = {"messages": [HumanMessage(content=respuesta)]}

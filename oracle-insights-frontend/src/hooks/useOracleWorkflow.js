@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createAnalysis, getWebSocketUrl } from '../api/apiConfig';
+import { createAnalysis, getWebSocketUrl, api } from '../api/apiConfig';
 
 export const AGENTS = [
   { id: 1, name: 'Supervisor', icon: 'S', color: 'bg-oracle-accent' },
@@ -21,14 +21,23 @@ export const useOracleWorkflow = () => {
   const threadIdRef = useRef(null);
 
   //  función para reanudar
-  async function resumeAnalysis(respuesta) {
-  if (!threadIdRef.current) return;
-  setIsAnalyzing(true); // ← Reactivar análisis
-  await fetch(`/impact/resume/${threadIdRef.current}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ erp_module: respuesta })
-  });
+async function resumeAnalysis(respuesta) {
+  console.log('🔄 resumeAnalysis llamado con:', respuesta);
+  if (!threadIdRef.current) {
+    console.error('❌ No threadIdRef.current');
+    return;
+  }
+  setIsAnalyzing(true);
+
+  try {
+    // Endpoint para ranudar el flujo
+    const response = await api.post(`/impact/resume/${threadIdRef.current}`, {
+      erp_module: respuesta
+    });
+    console.log('✅ Respuesta del endpoint:', response.status);
+  } catch (error) {
+    console.error('❌ Error en resumeAnalysis:', error);
+  }
 }
 
   const connectWebSocket = useCallback((threadId) => {
@@ -71,12 +80,19 @@ export const useOracleWorkflow = () => {
 
     // interrupción
  if (data.type === "interrupt") {
-  setIsAnalyzing(false); // ← Respuesta del usuario
+  setIsAnalyzing(false);
+
+  // Verificar si es el mensaje de selección de módulos
+  const contenidoModulo = "Los módulos ERP disponibles para análisis son:";
+  const displayContent = data.content.includes(contenidoModulo)
+    ? "Esperando Modulo ERP..."
+    : data.content;
+
   setMessages(prev => [...prev, {
     id: Date.now(),
     agent: "system",
     type: "interrupt",
-    content: data.content,
+    content: displayContent,
     timestamp: new Date().toISOString(),
   }]);
   return;
