@@ -22,13 +22,14 @@ export const useOracleWorkflow = () => {
 
   //  función para reanudar
   async function resumeAnalysis(respuesta) {
-    if (!threadIdRef.current) return;
-    await fetch(`/impact/resume/${threadIdRef.current}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ erp_module: respuesta })
-    });
-  }
+  if (!threadIdRef.current) return;
+  setIsAnalyzing(true); // ← Reactivar análisis
+  await fetch(`/impact/resume/${threadIdRef.current}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ erp_module: respuesta })
+  });
+}
 
   const connectWebSocket = useCallback((threadId) => {
     const wsUrl = getWebSocketUrl(threadId);
@@ -68,12 +69,13 @@ export const useOracleWorkflow = () => {
       return;
     }
 
-    // 👉 caso de interrupción
+    // interrupción
  if (data.type === "interrupt") {
+  setIsAnalyzing(false); // ← Respuesta del usuario
   setMessages(prev => [...prev, {
     id: Date.now(),
     agent: "system",
-    type: "interrupt",   // Human in the Loop
+    type: "interrupt",
     content: data.content,
     timestamp: new Date().toISOString(),
   }]);

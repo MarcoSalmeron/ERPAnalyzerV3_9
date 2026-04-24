@@ -1,8 +1,6 @@
 from langgraph_supervisor import create_supervisor
 from agents import investigador, analista,redactor
 from langchain_openai import ChatOpenAI
-from schemas.schemas import ERPState
-from langgraph.types import interrupt
 from tools.Tools import tool_obtener_modulos_disponibles
 
 from dotenv import load_dotenv
@@ -11,15 +9,6 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 model = ChatOpenAI(model="gpt-4o", temperature=0)
-
-# Hook que se ejecuta antes de cada paso del supervisor
-def ask_module_hook(state: ERPState, **kwargs):
-    # Si no hay módulo definido, interrumpimos el flujo
-    if not state.erp_module:
-        return interrupt("Por favor selecciona el módulo ERP que deseas analizar. ")
-    # Si ya está definido, simplemente devolvemos el estado sin cambios
-    return state
-
 
 prompt_supervisor = """
 Eres el **Director de Consultoría de Oracle Cloud**. Tu misión es coordinar el flujo de agentes para analizar Oracle Cloud Readiness, persistir los impactos en pgvector y generar un reporte ejecutivo en PDF.
@@ -128,5 +117,4 @@ team = create_supervisor(
     prompt=prompt_supervisor,
     tools=[tool_obtener_modulos_disponibles],
     output_mode="last_message",
-    #pre_model_hook=ask_module_hook,
 )
