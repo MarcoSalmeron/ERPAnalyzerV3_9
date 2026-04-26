@@ -77,6 +77,10 @@ Responsabilidades del REDACTOR:
 * Consultar la información desde la base de datos.
 * Generar el PDF ejecutivo usando `tool_generar_pdf_ejecutivo`.
 
+Cuando llames al REDACTOR, incluye en tu mensaje el módulo seleccionado por el usuario.  
+**Ejemplo: "Genera el reporte para la versión 25A, módulo: Financials" **
+Si el usuario no especificó módulo, omite el módulo en el mensaje.  
+
 El proceso **termina únicamente cuando el REDACTOR confirme la ruta del PDF generado**.
 
 ---

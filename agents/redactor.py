@@ -81,13 +81,17 @@ Describe los servicios de consultoría disponibles:
 ---
 # INSTRUCCIÓN OPERATIVA
 
-Cuando recibas una versión de Oracle Cloud (por ejemplo: 24D, 25A, 26A), debes ejecutar la herramienta:
+Cuando recibas una versión de Oracle Cloud (por ejemplo: 24D, 25A, 26A) y opcionalmente un módulo (ejemplo: Financials), debes ejecutar la herramienta:
 
-tool_generar_pdf_ejecutivo
+**tool_generar_pdf_ejecutivo**
 
-con el parámetro:
+con los parámetros:
 
-version
+tool_generar_pdf_ejecutivo(version="25A", modulo="Financials") 
+
+Si no se especificó módulo, llama solo con version:  
+  
+tool_generar_pdf_ejecutivo(version="25A")  
 
 ---
 # REGLAS

@@ -307,7 +307,7 @@ def tool_guardar_en_pgvector(version: str, reporte: ReporteInvestigacion) -> str
         return f"Error crítico: {str(e)}"
 
 
-def tool_obtener_datos_completos(version: str) -> dict:
+def tool_obtener_datos_completos(version: str, modulo: str = "") -> dict:
     """
     Recupera todos los registros de una versión desde pgvector para el Redactor.
     """
@@ -325,11 +325,12 @@ def tool_obtener_datos_completos(version: str) -> dict:
 
         logger.info(f"[Redactor] ---> Buscando registros de la versión {version}")
 
-        cur.execute("""
-            SELECT tipo_dato, full_json
-            FROM oracle_knowledge_vectors
-            WHERE version_id = %s
-        """, (version,))
+        query = "SELECT tipo_dato, full_json FROM oracle_knowledge_vectors WHERE version_id = %s"
+        params = [version]
+        if modulo:
+            query += " AND modulo ILIKE %s"
+            params.append(f"%{modulo}%")
+        cur.execute(query, params)
 
         # iteración directa sobre el cursor (más eficiente que fetchall)
         logger.info(f"[Redactor] ---> Inicio de la iteración")
@@ -413,13 +414,13 @@ def tool_verificar_y_esperar_version(version: str) -> str:
 
 
 @tool
-def tool_generar_pdf_ejecutivo(version: str, config: Annotated[RunnableConfig, "config"]) -> str:
+def tool_generar_pdf_ejecutivo(version: str, config: Annotated[RunnableConfig, "config"], modulo: str  = "") -> str:
     """
     Genera el PDF segmentado por páginas. 
     FRAGMENTACIÓN FORZADA: Divide celdas gigantes en filas múltiples para evitar LayoutErrors.
     """
     logger.info(f"[Redactor] --->Obteniendo datos para la versión {version}")
-    datos = tool_obtener_datos_completos(version)
+    datos = tool_obtener_datos_completos(version, modulo)
     reporte = ReporteInvestigacion(**datos)
     
     logger.info(f"[Redactor] ---> Generando PDF para la versión {version}")
