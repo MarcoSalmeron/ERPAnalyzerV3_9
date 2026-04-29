@@ -11,7 +11,7 @@
     @apply bg-oracle-dark text-oracle-text font-sans;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+     overflow-x: hidden;
   }
 
   ::-webkit-scrollbar {

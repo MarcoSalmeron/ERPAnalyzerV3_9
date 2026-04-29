@@ -4,6 +4,8 @@ import random
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 from langchain_huggingface import HuggingFaceEmbeddings
 import psycopg2
+import re
+import string
 
 MAX_RETRIES = 3
 
@@ -198,3 +200,86 @@ def es_consulta_valida_oracle(texto: str) -> bool:
     tiene_keyword = any(k in contenido for k in keywords)
     
     return bool(tiene_version or tiene_keyword)
+
+import re
+import string
+
+def normalizar_texto(texto: str) -> str:
+    texto = texto.lower()
+    texto = texto.replace("\n", " ")
+    texto = texto.strip()
+    # eliminar puntuación
+    texto = texto.translate(str.maketrans("", "", string.punctuation))
+    texto = re.sub(r"\s+", " ", texto)
+    return texto
+
+def detectar_ataque(texto: str) -> tuple[bool, str]:
+    """
+    Devuelve (es_ataque: bool, motivo: str).
+    Comprueba tanto el texto original en minúsculas como la versión normalizada.
+    """
+    if not texto:
+        return False, ""
+
+    texto_raw = texto.lower()
+    texto_norm = normalizar_texto(texto)
+
+    # patrones
+    raw_sql_patterns = [
+        r";",
+        r"--",
+        r"/\*",
+    ]
+
+    # patrones basados en palabras clave
+    keyword_patterns = [
+        r"\bselect\b\s+.*\bfrom\b",
+        r"\binsert\b\s+into\b",
+        r"\bdelete\b\s+from\b",
+        r"\bupdate\b\s+\w+\s+set\b",
+        r"\bcreate\b\s+table\b",
+        r"\balter\b\s+table\b",
+        r"\bdrop\b\s+table\b",
+        r"\btruncate\b\s+table\b",
+        r"\bunion\b\s+select\b",
+        r"\bexec\b\s*\(",
+        r"\bexecute\b\s*\(",
+        r"\bshow\b\s+tables\b",
+        r"\bdescribe\b\s+\w+\b",
+    ]
+
+    # Primero revisar raw patterns
+    for pattern in raw_sql_patterns:
+        if re.search(pattern, texto_raw, re.IGNORECASE):
+            return True, "Consulta SQL detectada (caracteres SQL en texto crudo)"
+
+    # Luego revisar keywords sobre texto raw y normalizado
+    for pattern in keyword_patterns:
+        if re.search(pattern, texto_raw, re.IGNORECASE) or re.search(pattern, texto_norm, re.IGNORECASE):
+            return True, "Consulta SQL detectada (patrón de palabras clave)"
+
+    # patrones de prompt injection
+    prompt_injection_patterns = [
+        r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions",
+        r"forget\s+(everything|all|your\s+instructions)",
+        r"(new|different)\s+(role|persona|identity|instructions)",
+        r"act\s+as\s+(if\s+you\s+are|a\s+different)",
+        r"pretend\s+(you\s+are|to\s+be)",
+        r"override\s+(your\s+)?(instructions|behavior|rules)",
+        r"disregard\s+(the\s+)?(above|previous|system)",
+        r"you\s+are\s+now\s+a",
+        r"system\s*:\s*",
+        r"<\s*system\s*>",
+        r"jailbreak",
+        r"do\s+anything\s+now",
+        r"dan\s+mode",
+        r"system prompt",
+        r"assistant prompt",
+        r"user prompt",
+    ]
+
+    for pattern in prompt_injection_patterns:
+        if re.search(pattern, texto_raw, re.IGNORECASE) or re.search(pattern, texto_norm, re.IGNORECASE):
+            return True, "Intento de modificar el comportamiento del agente detectado"
+
+    return False, ""

@@ -22,7 +22,7 @@ function App() {
     <div className="h-screen w-screen flex flex-col bg-oracle-dark overflow-hidden">
       <header className="h-14 bg-oracle-surface border-b border-oracle-border flex items-center px-4 shrink-0">
         <div className="flex items-center gap-3">
-          <img src={logoCondor} alt="Logo" className="h-8 w-auto" />
+          <img src={logoCondor} alt="Logo" className="h-8 w-auto rounded-full"/>
           <h1 className="text-lg font-semibold text-oracle-text">
             Ingeniería Condor <span className="text-oracle-accent">Insights</span>
           </h1>

@@ -93,6 +93,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
 
                 # ── Verificar si terminó ─────
                 if not state.next:
+                    # ── 1. Enviar el PDF al frontend ──────────────────────────
                     filename = f"reporte_{thread_id}.pdf"
                     await manager.send_update(thread_id, {
                         "step": 4,
@@ -101,6 +102,35 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                         "pdf_ready": True,
                         "pdf_url": f"/static/reports/{filename}"
                     })
+
+                    # ── 2. Interrupt: preguntar sobre pruebas de regresión ────
+                    await manager.send_update(thread_id, {
+                        "type": "interrupt",
+                        "agent": "system",
+                        "content": "¿Deseas generar un plan de pruebas de regresión para los impactos detectados? (Sí / No)"
+                    })
+
+                    # ── 3. Esperar respuesta del usuario ──────────────────────
+                    while thread_id not in pending_responses:
+                        await asyncio.sleep(0.5)
+                    respuesta_regresion = pending_responses.pop(thread_id)
+                    logger.info(f"📋 Respuesta pruebas de regresión: {respuesta_regresion}")
+
+                    # ── 4. Procesar respuesta y notificar al frontend ─────────
+                    if respuesta_regresion.strip().lower() in ("sí", "si", "s", "yes", "y"):
+                        await manager.send_update(thread_id, {
+                            "type": "info",
+                            "agent": "system",
+                            "content": "Plan de pruebas de regresión solicitado. Esta funcionalidad estará disponible próximamente."
+                        })
+                    else:
+                        await manager.send_update(thread_id, {
+                            "type": "info",
+                            "agent": "system",
+                            "content": "De acuerdo. El reporte está listo para su revisión."
+                        })
+
+                        # ── 5. Cerrar conexión ────────────────────────────────────
                     await manager.close_connection(thread_id)
                     break
 

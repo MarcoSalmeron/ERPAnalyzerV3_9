@@ -59,10 +59,19 @@ AZUL_CONDOR = colors.HexColor("#004A99")
 ROJO_ORACLE = colors.HexColor("#FF0000")
 GRIS_FONDO = colors.HexColor("#F4F7F9")
 
+BOTS_TEST = [
+    "Bot Automatización Financials",
+    "Bot Automatización Supply Chain and Manufacturing",
+    "Bot Automatización Human Capital Management"
+]
 
 # ===============================
 # HERRAMIENTAS
 # ===============================
+@tool
+def tool_obtener_bots_disponibles() -> List[str]:
+    """Retornar lista de Bots para pruebas de regresion"""
+    return [bot for bot in BOTS_TEST]
 
 @tool
 def tool_obtener_modulos_disponibles() -> List[str]:

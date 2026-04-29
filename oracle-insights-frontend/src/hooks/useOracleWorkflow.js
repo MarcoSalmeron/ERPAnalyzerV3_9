@@ -83,7 +83,7 @@ async function resumeAnalysis(respuesta) {
   setIsAnalyzing(false);
 
   // Verificar si es el mensaje de selección de módulos
-  const contenidoModulo = "Los módulos ERP disponibles para análisis son:";
+  const contenidoModulo = "Los módulos ERP disponibles son:";
   const displayContent = data.content.includes(contenidoModulo)
     ? "Esperando Modulo ERP..."
     : data.content;
@@ -93,6 +93,18 @@ async function resumeAnalysis(respuesta) {
     agent: "system",
     type: "interrupt",
     content: displayContent,
+    timestamp: new Date().toISOString(),
+  }]);
+  return;
+}
+
+if (data.type === "info") {
+  setIsAnalyzing(false);
+  setMessages(prev => [...prev, {
+    id: Date.now(),
+    agent: "system",
+    type: "info",
+    content: data.content,
     timestamp: new Date().toISOString(),
   }]);
   return;
