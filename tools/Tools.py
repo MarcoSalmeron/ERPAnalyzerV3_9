@@ -3,7 +3,7 @@ from datetime import datetime
 from time import time
 from langchain_core.tools import tool
 import logging
-
+import base64
 import json
 import random
 import psycopg2
@@ -59,19 +59,86 @@ AZUL_CONDOR = colors.HexColor("#004A99")
 ROJO_ORACLE = colors.HexColor("#FF0000")
 GRIS_FONDO = colors.HexColor("#F4F7F9")
 
-BOTS_TEST = [
-    "Bot Automatización Financials",
-    "Bot Automatización Supply Chain and Manufacturing",
-    "Bot Automatización Human Capital Management"
-]
-
 # ===============================
 # HERRAMIENTAS
 # ===============================
+
+@tool
+def tool_obtener_config_bot(nombre_bot: str) -> dict:
+    """
+    Consulta config_bots en pgvector y retorna la configuración del bot.
+    Retorna: nombre_bot, nombre_agente, status, attribute1 (execute_bot), attribute2 (endpoint)
+    """
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """  
+            SELECT nombre_bot, nombre_agente, status, attribute1, attribute2  
+            FROM config_bots  
+            WHERE nombre_bot = %s AND status = 'active'  
+            LIMIT 1  
+            """,
+            (nombre_bot,)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not row:
+            raise ValueError(f"Bot '{nombre_bot}' no encontrado o inactivo")
+
+        return {
+            "nombre_bot": row[0],
+            "nombre_agente": row[1],
+            "status": row[2],
+            "execute_bot": row[3],
+            "endpoint": row[4],
+        }
+    except Exception as e:
+        logger.error(f"[config_bots] --> Error: {e}")
+        raise
+
+@tool
+def tool_pdf_a_base64(thread_id: str) -> dict:
+    """
+    Lee el PDF generado para el thread_id y lo retorna en base64.
+    Retorna: {"name": "reporte_xxx.pdf", "content": "base64...", "type": "application/pdf"}
+    """
+    filename = f"reporte_{thread_id}.pdf"
+    ruta_pdf = f"./reports/{filename}"
+
+    if not os.path.exists(ruta_pdf):
+        raise FileNotFoundError(f"PDF no encontrado en {ruta_pdf}")
+
+    with open(ruta_pdf, "rb") as f:
+        contenido_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    logger.info(f"[PDF] --> PDF {filename} codificado en base64 ({len(contenido_b64)} chars)")
+    return {
+        "name": filename,
+        "content": contenido_b64,
+        "type": "application/pdf"
+    }
+
 @tool
 def tool_obtener_bots_disponibles() -> List[str]:
-    """Retornar lista de Bots para pruebas de regresion"""
-    return [bot for bot in BOTS_TEST]
+    """Retornar lista de Bots para pruebas de regresion desde config_bots"""
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+
+        cur.execute("SELECT nombre_bot FROM config_bots WHERE status = 'active' ORDER BY nombre_bot DESC")
+        bots = [row[0] for row in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        return bots
+
+    except Exception as e:
+        logger.error(f"Error obteniendo bots desde config_bots: {str(e)}")
+        return []
 
 @tool
 def tool_obtener_modulos_disponibles() -> List[str]:

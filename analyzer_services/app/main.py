@@ -10,6 +10,8 @@ from agents.supervisor import team
 from langgraph.checkpoint.memory import MemorySaver
 import os
 from pathlib import Path
+from analyzer_services.app.auth.auth_service import auth_service
+
 
 REPORTS_DIR = Path(__file__).parent.parent.parent / "reports"
 if not os.path.exists(REPORTS_DIR):
@@ -27,6 +29,13 @@ async def lifespan(app: FastAPI):
     memory = MemorySaver()
     app.state.oracle_graph = team.compile(checkpointer=memory)
     print("✅ LangGraph inicializado")
+
+    # Login inicial JWT
+    success = await auth_service.login()
+    if success:
+        print("✅ Autenticación JWT inicializada")
+    else:
+        print("⚠️ Advertencia: No se pudo autenticar con el servicio externo")
     yield
     # --- SHUTDOWN ---
     print("🛑 Cerrando aplicación")

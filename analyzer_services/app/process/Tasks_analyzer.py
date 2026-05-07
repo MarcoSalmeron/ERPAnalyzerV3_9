@@ -2,7 +2,9 @@ from analyzer_services.app.process.ConnectionManager import manager
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.errors import GraphInterrupt
 from analyzer_services.app.state import pending_responses
-
+from tools.Tools import tool_pdf_a_base64, tool_obtener_config_bot
+from analyzer_services.app.auth.auth_service import auth_service
+import httpx
 from common.common_utl import get_embeddings_model
 import asyncio
 import logging
@@ -118,11 +120,58 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
 
                     # ── 4. Procesar respuesta y notificar al frontend ─────────
                     if respuesta_regresion.strip().lower() in ("sí", "si", "s", "yes", "y"):
-                        await manager.send_update(thread_id, {
-                            "type": "info",
-                            "agent": "system",
-                            "content": "Plan de pruebas de regresión solicitado. Esta funcionalidad estará disponible próximamente."
-                        })
+
+                        try:
+                            # 1. PDF en base64
+                            pdf_data = tool_pdf_a_base64.invoke({"thread_id": thread_id})
+
+                            # 2. Obtener config del bot
+                            nombre_bot = pending_responses.get(f"{thread_id}_bot", "Envio de correo Marco")
+                            config_bot = tool_obtener_config_bot.invoke({"nombre_bot" : nombre_bot})
+
+                            # 3. body
+                            body = {
+                                "bot_name": config_bot["nombre_bot"],
+                                "execute_bot": config_bot["execute_bot"],
+                                "agent_name": config_bot["nombre_agente"],
+                                "execution_variables": {
+                                    "vPdfBase64": pdf_data
+                                }
+                            }
+
+                            # 4. Obtener token JWT y hacer POST
+                            token = await auth_service.get_token()
+                            endpoint = config_bot["endpoint"]
+
+                            async with httpx.AsyncClient() as client:
+                                resp = await client.post(
+                                    endpoint,
+                                    json=body,
+                                    headers={
+                                        "Content-Type": "application/json",
+                                        "Authorization": f"Bearer {token}"
+                                    }
+                                )
+
+                            if resp.status_code == 200:
+                                await manager.send_update(thread_id, {
+                                    "type": "info",
+                                    "agent": "system",
+                                    "content": f"Pruebas de regresión iniciadas correctamente en {config_bot['nombre_bot']}."
+                                })
+                            else:
+                                await manager.send_update(thread_id, {
+                                    "type": "info",
+                                    "agent": "system",
+                                    "content": f"Error al iniciar pruebas: {resp.status_code} - {resp.text}"
+                                })
+                        except Exception as e:
+                            logger.error(f"Error ejecutando pruebas de regresión: {e}")
+                            await manager.send_update(thread_id, {
+                                "type": "info",
+                                "agent": "system",
+                                "content": f"Error técnico al ejecutar pruebas: {str(e)}"
+                            })
                     else:
                         await manager.send_update(thread_id, {
                             "type": "info",

@@ -79,10 +79,8 @@ async function resumeAnalysis(respuesta) {
     }
 
     // interrupción
- if (data.type === "interrupt") {
+if (data.type === "interrupt") {
   setIsAnalyzing(false);
-
-  // Verificar si es el mensaje de selección de módulos
   const contenidoModulo = "Los módulos ERP disponibles son:";
   const displayContent = data.content.includes(contenidoModulo)
     ? "Esperando Modulo ERP..."
