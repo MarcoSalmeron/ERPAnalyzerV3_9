@@ -49,3 +49,6 @@ class   ReporteInvestigacion(BaseModel):
 
 class ERPState(BaseModel):
     erp_module: str | None = None
+
+class GoogleTokenRequest(BaseModel):
+    credential: str

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from analyzer_services.app.api.routes import router
+from analyzer_services.app.auth.google_auth import router as auth_router
 import os
 from fastapi.staticfiles import StaticFiles
 import asyncio
@@ -52,6 +53,7 @@ services.mount("/static/reports", StaticFiles(directory=REPORTS_DIR), name="repo
 services.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"])
 # Incluir rutas de la API
 services.include_router(router)
+services.include_router(auth_router)
 
 
 @services.get("/")
