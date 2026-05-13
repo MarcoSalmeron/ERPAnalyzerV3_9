@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from analyzer_services.app.api.routes import router
 from analyzer_services.app.auth.google_auth import router as auth_router
@@ -13,6 +13,10 @@ import os
 from pathlib import Path
 from analyzer_services.app.auth.auth_service import auth_service
 
+
+PLANTILLAS_DIR = Path(__file__).parent.parent.parent / "static" / "plantillas"
+if not os.path.exists(PLANTILLAS_DIR):
+    os.makedirs(PLANTILLAS_DIR)
 
 REPORTS_DIR = Path(__file__).parent.parent.parent / "reports"
 if not os.path.exists(REPORTS_DIR):
@@ -53,8 +57,16 @@ services.mount("/static/reports", StaticFiles(directory=REPORTS_DIR), name="repo
 services.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"])
 # Incluir rutas de la API
 services.include_router(router)
-services.include_router(auth_router)
+services.include_router(auth_router, prefix="/api")
 
+@services.get("/api/plantillas")
+def list_plantillas():
+    """Lista todos los archivos en el directorio de plantillas"""
+    try:
+        files = [f.name for f in PLANTILLAS_DIR.iterdir() if f.is_file()]
+        return {"files": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @services.get("/")
 def read_root():

@@ -58,7 +58,11 @@ function Login({ onLogin }) {
               if (res.ok) {
                 const data = await res.json();
                 localStorage.setItem('access_token', data.access_token);
-                onLogin(); // reutilizamos tu prop existente
+                onLogin();
+              } else {
+                const err = await res.json();
+                console.error('OAuth fallido:', err.detail);
+                alert(`Error: ${err.detail}`); // o usa un estado de error en el UI
               }
             }}
             onError={() => console.error('Google login failed')}

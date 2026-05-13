@@ -7,22 +7,20 @@ import logoCondor from './images/logo_condor.png';
 import Login from './components/Auth/Login';
 
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
-     if (!isAuthenticated) {
+    const [isAuthenticated, setIsAuthenticated] = React.useState(
+        () => !!localStorage.getItem('access_token')
+    );
+
+    const {
+    isAnalyzing, currentStep, agentStatuses,
+    messages, pdfUrl, error, startAnalysis,
+    resetWorkflow, resumeAnalysis,
+    } = useOracleWorkflow();
+
+  if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
   }
-  const {
-    isAnalyzing,
-    currentStep,
-    agentStatuses,
-    messages,
-    pdfUrl,
-    error,
-    startAnalysis,
-    resetWorkflow,
-    resumeAnalysis, // <- Reanudar Flujo
-  } = useOracleWorkflow();
 
   return (
     <div className="h-screen w-screen flex flex-col bg-oracle-dark overflow-hidden">

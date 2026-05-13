@@ -13,7 +13,6 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 JWT_SECRET = os.getenv("JWT_SECRET_KEY")
-ALLOWED_DOMAIN = "gmail.com"
 
 
 @router.post("/google")
@@ -29,10 +28,6 @@ async def google_login(body: GoogleTokenRequest):
         raise HTTPException(status_code=401, detail=f"Token inválido: {e}")
 
     email = payload.get("email")
-
-    # Opcional: restringir a un dominio o lista de correos
-    if not email.endswith(f"@{ALLOWED_DOMAIN}"):
-        raise HTTPException(status_code=403, detail="Correo no autorizado")
 
         # Generar JWT propio de la aplicación
     token_data = {

@@ -5,14 +5,25 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
   const [error, setError] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-
-  const MODULOS = [
-    { label: 'Financials', file: 'Financials.pdf' },
-    { label: 'Supply Chain and Manufacturing', file: 'Supply Chain and Manufacturing.pdf' },
-    { label: 'Human Capital Management', file: 'Human Capital Management.pdf' }
-  ];
+  const [plantillas, setPlantillas] = useState([]);
 
   const fullPdfUrl = pdfUrl ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${pdfUrl}` : null;
+
+  useEffect(() => {
+    const fetchPlantillas = async () => {
+      try {
+        const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/plantillas`);
+        if (res.ok) {
+          const data = await res.json();
+          setPlantillas(data.files || []);
+        }
+      } catch (err) {
+        console.error('Error al cargar plantillas:', err);
+      }
+    };
+    fetchPlantillas();
+  }, []);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -42,6 +53,7 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
 
   return (
     <div className="h-full flex flex-col bg-oracle-dark">
+      {/* Header */}
       <div className="p-4 border-b border-oracle-border flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-oracle-text flex items-center gap-2">
@@ -50,11 +62,9 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
             </svg>
             Reporte
           </h2>
-          <p className="text-xs text-oracle-muted mt-1">
-            Documento de análisis generado
-          </p>
+          <p className="text-xs text-oracle-muted mt-1">Documento de análisis generado</p>
 
-          {/* ── Botón Descargar Plantillas con dropdown ── */}
+          {/* Botón Descargar Plantillas con dropdown */}
           <div className="relative mt-2" ref={dropdownRef}>
             <button
               type="button"
@@ -75,24 +85,29 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
 
             {dropdownOpen && (
               <div className="absolute left-0 top-full mt-1 z-50 bg-oracle-surface border border-oracle-border rounded-lg shadow-lg min-w-max">
-                {MODULOS.map((mod) => (
-                  <button
-                    key={mod.label}
-                    type="button"
-                    onClick={() => handleDescargar(mod.file)}
-                    className="w-full text-left px-4 py-2 text-sm text-oracle-text hover:bg-oracle-border transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4 text-oracle-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {mod.label}
-                  </button>
-                ))}
+                {plantillas.length === 0 ? (
+                  <div className="px-4 py-2 text-sm text-oracle-muted">No hay plantillas</div>
+                ) : (
+                  plantillas.map((filename) => (
+                    <button
+                      key={filename}
+                      type="button"
+                      onClick={() => handleDescargar(filename)}
+                      className="w-full text-left px-4 py-2 text-sm text-oracle-text hover:bg-oracle-border transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4 text-oracle-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {filename}
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
         </div>
 
+        {/* Abrir en nueva pestaña */}
         {pdfUrl && (
           <a
             href={fullPdfUrl}
@@ -108,6 +123,7 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
         )}
       </div>
 
+      {/* Cuerpo principal */}
       <div className="flex-1 overflow-hidden bg-oracle-surface">
         {pdfUrl ? (
           <div className="h-full flex flex-col">
@@ -122,6 +138,7 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
                 </div>
               </div>
             )}
+
             {error && (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -132,6 +149,7 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
                 </div>
               </div>
             )}
+
             <iframe
               src={fullPdfUrl}
               className="flex-1 w-full border-0"
@@ -156,6 +174,7 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
         )}
       </div>
 
+      {/* Footer con botón Nueva Consulta */}
       {pdfUrl && (
         <div className="p-4 border-t border-oracle-border">
           <button
