@@ -5,25 +5,8 @@ const PdfViewer = ({ pdfUrl, onReset }) => {
   const [error, setError] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const [plantillas, setPlantillas] = useState([]);
 
   const fullPdfUrl = pdfUrl ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${pdfUrl}` : null;
-
-  useEffect(() => {
-    const fetchPlantillas = async () => {
-      try {
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${base}/api/plantillas`);
-        if (res.ok) {
-          const data = await res.json();
-          setPlantillas(data.files || []);
-        }
-      } catch (err) {
-        console.error('Error al cargar plantillas:', err);
-      }
-    };
-    fetchPlantillas();
-  }, []);
 
   const handleLoad = () => {
     setIsLoading(false);

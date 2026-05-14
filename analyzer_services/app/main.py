@@ -58,7 +58,7 @@ services.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"]
 # Incluir rutas de la API
 services.include_router(router)
 services.include_router(auth_router, prefix="/api")
-
+services.mount("/static/plantillas", StaticFiles(directory=PLANTILLAS_DIR), name="plantillas")
 @services.get("/api/plantillas")
 def list_plantillas():
     """Lista todos los archivos en el directorio de plantillas"""
