@@ -165,7 +165,7 @@ if (data.type === "info") {
     setMessages(prev => [
       ...prev,
       { id: Date.now(), agent: 'user', content: query, timestamp: new Date().toISOString() },
-      { id: Date.now() + 1, agent: 'system', content: 'Iniciando análisis...', timestamp: new Date().toISOString() }
+      { id: Date.now() + 1, agent: 'system', content: 'Conectando con el agente...', timestamp: new Date().toISOString() }
     ]);
 
     try {
@@ -175,11 +175,11 @@ if (data.type === "info") {
       connectWebSocket(thread_id);
 
       setMessages(prev => [...prev, {
-        id: Date.now() + 2,
-        agent: 'system',
-        content: `Análisis iniciado. Thread ID: ${thread_id}`,
-        timestamp: new Date().toISOString(),
-      }]);
+      id: Date.now() + 2,
+      agent: 'system',
+      content: 'Agente conectado.',
+      timestamp: new Date().toISOString(),
+        }]);
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al iniciar el análisis');
       setIsAnalyzing(false);

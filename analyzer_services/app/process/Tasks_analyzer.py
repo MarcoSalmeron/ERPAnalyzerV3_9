@@ -31,9 +31,6 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
     inputs = {"messages": [HumanMessage(content=query)]}
     print(f"🚀 run_oracle_analysis iniciado con thread_id: {thread_id}")
 
-    # Flag para la selección del módulo
-    module_selected = False
-
     try:
         step_agent = 1
         await manager.send_update(thread_id, {
@@ -84,36 +81,29 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
 
                 state = await oracle_app.aget_state(config)
 
-                # ── Pedir módulo si no se seleccionó ──
-                if not module_selected:
+                # ── Grafo pausado esperando input del usuario ──
+                if state.next:
                     mensajes = state.values.get("messages", [])
-                    pregunta = None
-                    for msg in reversed(mensajes):
-                        if isinstance(msg, AIMessage):
-                            pregunta = msg.content
-                            break
-                    if pregunta is None:
-                        pregunta = "Por favor selecciona el módulo ERP que deseas analizar."
-
-                    logger.info(f"Pregunta inicial del supervisor: {pregunta}")
+                    pregunta = next(
+                        (msg.content for msg in reversed(mensajes) if isinstance(msg, AIMessage)),
+                        "Por favor responde para continuar."
+                    )
+                    logger.info(f"Interrupción genérica del supervisor: {pregunta}")
                     await manager.send_update(thread_id, {
                         "type": "interrupt",
                         "agent": "supervisor",
                         "content": pregunta
                     })
-                    # Esperar respuesta en pending_responses...
                     while thread_id not in pending_responses:
                         await asyncio.sleep(0.5)
                     respuesta = pending_responses.pop(thread_id)
                     print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
 
-                    await oracle_app.aupdate_state(config, {"erp_module": respuesta})
+                    # Reinyectar como HumanMessage — sin asumir qué campo actualizar
                     inputs = {"messages": [HumanMessage(content=respuesta)]}
-                    module_selected = True
-
                     continue
 
-                # ── Verificar si terminó ─────
+                    # ── Verificar si terminó ─────
                 if not state.next:
                     # ── 1. Enviar el PDF al frontend ──────────────────────────
                     filename = f"reporte_{thread_id}.pdf"
@@ -207,30 +197,33 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
                 continue
 
             except GraphInterrupt as gi:
-                # Manejo de interrupciones provenientes del grafo
+
                 try:
+
                     pregunta = gi.args[0].value
+
                 except Exception:
+
                     pregunta = str(gi)
-                logger.info(f"🤖 Interrupción capturada: {pregunta}")
-                await manager.send_update(thread_id, {
-                    "type": "interrupt",
-                    "agent": "system",
-                    "content": pregunta
-                })
-                while thread_id not in pending_responses:
-                    await asyncio.sleep(0.5)
-                respuesta = pending_responses.pop(thread_id)
-                print(f"📤 Recuperado de pending_responses[{thread_id}]: {respuesta}")
-                await oracle_app.aupdate_state(config, {"erp_module": respuesta})
-                new_state = await oracle_app.aget_state(config)
-                logger.info(f"📊 Estado actualizado: {new_state.values}")
-                inputs = {"messages": [HumanMessage(content=respuesta)]}
-                # Si la interrupción provino del sistema y aún no se había seleccionado módulo, marcarlo
-                if not module_selected:
-                    module_selected = True
-                # Volver a procesar astream con la nueva entrada
-                continue
+
+            await manager.send_update(thread_id, {
+
+                "type": "interrupt",
+
+                "agent": "system",
+
+                "content": pregunta
+
+            })
+
+            while thread_id not in pending_responses:
+                await asyncio.sleep(0.5)
+
+            respuesta = pending_responses.pop(thread_id)
+
+            inputs = {"messages": [HumanMessage(content=respuesta)]}
+
+            continue
 
     except Exception as e:
         logger.error(f"Error en el flujo de trabajo: {str(e)}")

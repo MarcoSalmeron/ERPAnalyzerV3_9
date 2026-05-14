@@ -6,17 +6,17 @@ import { useOracleWorkflow } from './hooks/useOracleWorkflow';
 import logoCondor from './images/logo_condor.png';
 import Login from './components/Auth/Login';
 
-const [plantillas, setPlantillas] = React.useState([]);
-
-React.useEffect(() => {
-  const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  fetch(`${base}/api/plantillas`)
-    .then(res => res.ok ? res.json() : { files: [] })
-    .then(data => setPlantillas(data.files || []))
-    .catch(() => {});
-}, []);
-
 function App() {
+
+    const [plantillas, setPlantillas] = React.useState([]);
+
+    React.useEffect(() => {
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      fetch(`${base}/api/plantillas`)
+        .then(res => res.ok ? res.json() : { files: [] })
+        .then(data => setPlantillas(data.files || []))
+        .catch(() => {});
+    }, []);
 
     const [isAuthenticated, setIsAuthenticated] = React.useState(
         () => !!localStorage.getItem('access_token')

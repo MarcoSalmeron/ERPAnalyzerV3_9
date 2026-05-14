@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const PdfViewer = ({ pdfUrl, onReset }) => {
+const PdfViewer = ({ pdfUrl, onReset, plantillas = [] }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
