@@ -18,6 +18,6 @@ export const API_ENDPOINTS = {
 export const getWebSocketUrl = (threadId) => `${WS_BASE_URL}/impact/ws/${threadId}`;
 
 export const createAnalysis = async (query) => {
-  const response = await api.post(API_ENDPOINTS.analyze, { query });
+  const response = await api.post(API_ENDPOINTS.analyze, { query, thread_id: threadId });
   return response.data;
 };
