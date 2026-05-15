@@ -31,6 +31,8 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
     inputs = {"messages": [HumanMessage(content=query)]}
     print(f"🚀 run_oracle_analysis iniciado con thread_id: {thread_id}")
 
+    #Flag para la bienvenida
+    welcome_done = False
     # Flag para la selección del módulo
     module_selected = False
 
@@ -45,6 +47,29 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
 
         while True:
             try:
+                # ── NUEVO: Bienvenida (HITL #1) ──────────────────────────
+                if not welcome_done:
+                    await manager.send_update(thread_id, {
+                        "type": "interrupt",
+                        "agent": "supervisor",
+                        "content": "¡Hola! Soy el Director de Consultoría de Oracle Cloud. ¿Qué deseas realizar?\n\n1. Análisis de Impacto\n2. Pruebas de Regresión"
+                    })
+                    while thread_id not in pending_responses:
+                        await asyncio.sleep(0.5)
+                    eleccion = pending_responses.pop(thread_id).strip().lower()
+
+                    if any(x in eleccion for x in ("2", "regresion", "regresión", "prueba", "pruebas")):
+                        await manager.send_update(thread_id, {
+                            "type": "info",
+                            "agent": "supervisor",
+                            "content": "Para ejecutar pruebas de regresión, descarga las plantillas (en el panel derecho) y adjúntalas usando el botón 📎 al lado del input del chat."
+                        })
+                        await manager.close_connection(thread_id)
+                        break
+
+                    welcome_done = True
+                    continue  # vuelve al inicio del while → ahora entra al astream
+
                 async for event in oracle_app.astream(inputs, config=config, stream_mode="values"):
                     if "messages" in event:
                         last_msg = event["messages"][-1]
@@ -84,7 +109,7 @@ async def run_oracle_analysis(thread_id: str, query: str, oracle_app):
 
                 state = await oracle_app.aget_state(config)
 
-                # ── Pedir módulo si no se seleccionó ──
+                # ── Pedir módulo si no se seleccionó (HITL #2)──
                 if not module_selected:
                     mensajes = state.values.get("messages", [])
                     pregunta = None
